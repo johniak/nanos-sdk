@@ -64,14 +64,17 @@ def main():
             f.write(open(os.path.join(sdk, "port", "config.cache")).read())
             for line in m.get("cache", []): f.write(line + "\n")
         run(["./configure", "--host=i686-nanos", "--cache-file=" + cache] + cfg, cwd=stage)
+        hook("post_configure.sh")
         run(["make", "-j%d" % os.cpu_count(), m.get("make_target", "")] if m.get("make_target") else ["make", "-j%d" % os.cpu_count()], cwd=stage)
     elif build == "cmake":
         bdir = os.path.join(stage, "build-nanos"); os.makedirs(bdir)
         run(["cmake", "-DCMAKE_TOOLCHAIN_FILE=" + os.path.join(sdk, "port", "toolchain-nanos.cmake")] + cfg + [".."], cwd=bdir)
+        hook("post_configure.sh")
         run(["make", "-j%d" % os.cpu_count()], cwd=bdir)
     elif build == "meson":
         bdir = os.path.join(stage, "build-nanos")
         run(["meson", "setup", "--cross-file", os.path.join(sdk, "port", "nanos-cross.meson")] + cfg + [bdir], cwd=stage)
+        hook("post_configure.sh")
         run(["ninja", "-C", bdir])
     elif build == "make":
         run(["make", "CC=i686-nanos-gcc", "-j%d" % os.cpu_count()] + cfg, cwd=stage)

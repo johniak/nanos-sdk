@@ -13,6 +13,11 @@
       builtin_define ("__nanos__");		\
       builtin_define ("__NanOS__");		\
       builtin_assert ("system=nanos");		\
+      /* Expose the POSIX/GNU surface by default (like a hosted Linux gcc) so picolibc's	\
+       * feature-gated declarations — lstat, strdup, etc. — are visible to stock code and	\
+       * to configure's function probes, instead of being hidden on a bare-elf target. */	\
+      builtin_define ("_DEFAULT_SOURCE");	\
+      builtin_define ("_GNU_SOURCE");		\
   } while (0)
 
 /* Startup: crt0 (_start -> main -> exit) + the .nxe header placeholder object. */
