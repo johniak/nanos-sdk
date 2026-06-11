@@ -63,7 +63,7 @@ def main():
             f.write(open(os.path.join(sdk, "port", "config.cache")).read())
             for line in m.get("cache", []): f.write(line + "\n")
         run(["./configure", "--host=i686-nanos", "--cache-file=" + cache] + cfg, cwd=stage)
-        run(["make", "-j%d" % os.cpu_count()], cwd=stage)
+        run(["make", "-j%d" % os.cpu_count(), m.get("make_target", "")] if m.get("make_target") else ["make", "-j%d" % os.cpu_count()], cwd=stage)
     elif build == "cmake":
         bdir = os.path.join(stage, "build-nanos"); os.makedirs(bdir)
         run(["cmake", "-DCMAKE_TOOLCHAIN_FILE=" + os.path.join(sdk, "port", "toolchain-nanos.cmake")] + cfg + [".."], cwd=bdir)
@@ -78,6 +78,20 @@ def main():
         sys.exit("unknown build: " + build)
 
     hook("post_build.sh")
+
+    # ---- library port: install into the SDK sysroot, no app .nxe ----
+    if m.get("install") == "sysroot":
+        sysroot = os.path.join(os.environ.get("PREFIX", "/opt/i686-nanos"), "i686-nanos")
+        os.makedirs(os.path.join(sysroot, "lib"), exist_ok=True)
+        os.makedirs(os.path.join(sysroot, "include"), exist_ok=True)
+        for rel in m.get("sysroot_libs", []):
+            shutil.copy(os.path.join(stage, rel), os.path.join(sysroot, "lib", os.path.basename(rel)))
+        for rel in m.get("sysroot_headers", []):
+            src = os.path.join(stage, rel)
+            if os.path.exists(src):
+                shutil.copy(src, os.path.join(sysroot, "include", os.path.basename(rel)))
+        print("== installed", name, "into sysroot", sysroot, "==")
+        return
 
     # ---- mknx -> .nxe ----
     binary = os.path.join(stage, m.get("binary", name))
